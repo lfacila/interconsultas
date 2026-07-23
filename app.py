@@ -14,7 +14,7 @@ try:
     df_registro = conn.read(worksheet="Registro", ttl=0).dropna(how="all")
     df_listas = conn.read(worksheet="Listas", ttl=0).dropna(how="all")
 except Exception as e:
-    st.error("Error al conectar con Google Sheets. Revisa los permisos y los nombres de las pestañas.")
+    st.error(f"Error técnico exacto: {e}")
     st.stop()
 
 # Convertir columnas de listas a listas de Python, limpiando nulos
