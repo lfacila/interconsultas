@@ -45,12 +45,29 @@ with tab1:
         fecha = st.date_input("Fecha", datetime.today())
         tipo = st.selectbox("Tipo de origen", ["Atención Primaria", "Especialidad Hospitalaria", "Urgencias", "Otro"])
         
+        # Especialidad
+        especialidad_opcion = ""
         especialidad = ""
         if tipo == "Especialidad Hospitalaria":
-            especialidad = st.selectbox("Especialidad remitente", [""] + listas['especialidad'])
+            especialidad_opcion = st.selectbox("Especialidad remitente", [""] + listas['especialidad'] + ["➕ Añadir nueva..."])
+            if especialidad_opcion == "➕ Añadir nueva...":
+                especialidad = st.text_input("Escribe la nueva especialidad...")
+            else:
+                especialidad = especialidad_opcion
+                
+        # Centro
+        centro_opcion = st.selectbox("Centro / Hospital", [""] + listas['centro'] + ["➕ Añadir nuevo..."])
+        if centro_opcion == "➕ Añadir nuevo...":
+            centro = st.text_input("Escribe el nuevo centro...")
+        else:
+            centro = centro_opcion
             
-        centro = st.selectbox("Centro / Hospital", [""] + listas['centro'])
-        medico = st.selectbox("Médico remitente", [""] + listas['medico'])
+        # Médico
+        medico_opcion = st.selectbox("Médico remitente", [""] + listas['medico'] + ["➕ Añadir nuevo..."])
+        if medico_opcion == "➕ Añadir nuevo...":
+            medico = st.text_input("Escribe el nuevo médico...")
+        else:
+            medico = medico_opcion
 
     with col2:
         motivo = st.selectbox("Motivo principal", [""] + MOTIVOS)
@@ -65,6 +82,28 @@ with tab1:
         if not centro or not medico or not motivo:
             st.error("Por favor, completa Centro, Médico y Motivo.")
         else:
+            # 1. Guardar nuevos elementos en la hoja "Listas" si no existían
+            actualizar_listas = False
+            if centro not in listas['centro']:
+                listas['centro'].append(centro)
+                actualizar_listas = True
+            if medico not in listas['medico']:
+                listas['medico'].append(medico)
+                actualizar_listas = True
+            if tipo == "Especialidad Hospitalaria" and especialidad and especialidad not in listas['especialidad']:
+                listas['especialidad'].append(especialidad)
+                actualizar_listas = True
+                
+            if actualizar_listas:
+                max_len = max(len(listas['centro']), len(listas['medico']), len(listas['especialidad']))
+                df_actualizado_listas = pd.DataFrame({
+                    'centro': listas['centro'] + [''] * (max_len - len(listas['centro'])),
+                    'medico': listas['medico'] + [''] * (max_len - len(listas['medico'])),
+                    'especialidad': listas['especialidad'] + [''] * (max_len - len(listas['especialidad']))
+                })
+                conn.update(worksheet="Listas", data=df_actualizado_listas)
+
+            # 2. Guardar la interconsulta en la hoja "Registro"
             motivo_final = motivo_otro if motivo == "Otro motivo" and motivo_otro else motivo
             nueva_ic = pd.DataFrame([{
                 "id": str(datetime.now().timestamp()),
@@ -78,10 +117,9 @@ with tab1:
                 "notas": notas
             }])
             
-            # Unir y guardar en Sheets
             df_actualizado = pd.concat([df_registro, nueva_ic], ignore_index=True)
             conn.update(worksheet="Registro", data=df_actualizado)
-            st.success("Interconsulta guardada correctamente en Google Sheets.")
+            st.success("Interconsulta guardada correctamente.")
             st.rerun()
 
 # ══════════════ REGISTRO ══════════════
